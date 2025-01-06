@@ -1,0 +1,18 @@
+[Unit]
+Description=MongoDB Database Server
+Documentation=https://docs.mongodb.org/manual
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/lib/mongo
+ExecStart=/usr/local/mongodb/bin/mongod -f /etc/mongodb.conf
+ExecReload=/bin/kill -HUP $MAINPID
+User=mongod
+Group=mongod
+#Restart=on-failure
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

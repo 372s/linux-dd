@@ -1,0 +1,16 @@
+[Unit]
+Description=Nginx HTTP Server
+After=network.target
+
+[Service]
+Type=forking
+ExecStartPre=/usr/local/nginx/sbin/nginx -t
+ExecStart=/usr/local/nginx/sbin/nginx
+ExecReload=/usr/local/nginx/sbin/nginx -s reload
+ExecStop=/usr/local/nginx/sbin/nginx -s stop
+PrivateTmp=false
+User=www
+Group=www
+
+[Install]
+WantedBy=multi-user.target
