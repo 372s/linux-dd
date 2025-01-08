@@ -1,29 +1,63 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # 如果需要指定python版本，请修改此处
-python_bin="/usr/local/python/bin"
+bin_dir="/usr/local/python/3.11/bin"
+pip_exec="$bin_dir/pip3"
 
 # 安装supervisor
-$python_bin/pip3 install supervisor
+$pip_exec install supervisor
 
-# 创建软链接
 # 如果python_dir不等于/usr/bin，请修改此处
-if [ "$python_bin" != "/usr/bin" ]; then
-    ln -s ${python_dir}/bin/supervisord /usr/bin/supervisord
-    ln -s ${python_dir}/bin/supervisorctl /usr/bin/supervisorctl
+# if [ "$python_bin" != "/usr/bin" ]; then
+#     ln -s $python_bin/supervisord /usr/bin/supervisord
+#     ln -s $python_bin/supervisorctl /usr/bin/supervisorctl
+# fi
+# 创建软链接
+if [ ! -f "/usr/bin/supervisord" ]; then
+    echo "$bin_dir/supervisord"
+    ln -s "$bin_dir/supervisord" /usr/bin/supervisord
+fi
+if [ ! -f "/usr/bin/supervisorctl" ]; then
+    echo "$bin_dir/supervisorctl"
+    ln -s "$bin_dir/supervisorctl" /usr/bin/supervisorctl
 fi
 
-# 配置文件
-mkdir /etc/supervisor
-mkdir /etc/supervisor/conf.d
-${python_bin}/echo_supervisord_conf > /etc/supervisor/supervisord.conf
-cat << EOF >> /etc/supervisor/supervisord.conf
-[include]
-files = /etc/supervisor/conf.d/*.conf
-EOF
+# log
+if [ ! -d "/var/log/supervisor" ]; then
+    mkdir /var/log/supervisor
+fi
 
-# 创建配置
-mkdir /etc/supervisor.d
+# config dir
+config_dir=/etc/supervisor
+# 创建配置文件目录
+if [ ! -d "$config_dir/conf.d" ]; then
+    mkdir -p "$config_dir/conf.d"
+fi
+
+if [ ! -f "$config_dir/supervisord.conf" ]; then
+	# 创建配置文件
+	$bin_dir/echo_supervisord_conf > $config_dir/supervisord.conf
+	
+	# 备份配置文件
+	mv $config_dir/supervisord.conf $config_dir/supervisord.example.conf
+	
+	# 保留非注释配置，删除空行
+	cat $config_dir/supervisord.example.conf | grep -v '^;' | tr -s "\n" > $config_dir/supervisord.conf
+	
+    # 如果需要前台运行再修改此处
+    # sed -i 's/nodaemon=false/nodaemon=true/g' $config_dir/supervisord.conf
+    sed -i 's|pidfile=/tmp/supervisord.pid|pidfile=/var/run/supervisord.pid|g' $config_dir/supervisord.conf
+    sed -i 's|logfile=/tmp/supervisord.log|logfile=/var/log/supervisord.log|g' $config_dir/supervisord.conf
+
+	cat << EOF >> $config_dir/supervisord.conf
+[include]
+files = /etc/supervisor/conf.d/*.ini
+EOF
+    # 删除空行
+    sed -i '/^$/d' $config_dir/supervisord.conf
+
+fi
+
 
 # 查看https://github.com/372s/supervisor-initscripts
 # 生成配置文件
@@ -49,5 +83,5 @@ EOF
 
 # 启动服务
 systemctl daemon-reload
-systemctl enable supervisord
-systemctl start supervisord
+# systemctl enable supervisord
+# systemctl start supervisord
